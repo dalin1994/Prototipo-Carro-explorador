@@ -1,0 +1,67 @@
+import os
+import requests
+from flask import Flask, jsonify, render_template, request
+from datetime import datetime
+import requests
+
+app = Flask(__name__)
+
+# IP real del ESP32 en tu red local
+ESP32_IP = 'http://172.20.10.4'  # Cambia aquí a tu IP real del ESP32
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/data')
+def obtener_datos():
+    try:
+        resp = requests.get(f'{ESP32_IP}/data', timeout=3)
+        resp.raise_for_status()
+        data = resp.json()
+        return jsonify(data)
+    except Exception as e:
+        print(f"Error al obtener datos del ESP32: {e}")
+        # Devuelve valores predeterminados para evitar fallo en la página
+        return jsonify({
+            "temperatura": 0,
+            "humedad": 0,
+            "distancia": 0,
+            "gas": 0
+        })
+
+@app.route('/control', methods=['POST'])
+def control():
+    dir = request.form.get('dir')
+    if dir:
+        try:
+            # Enviar comando al ESP32
+            r = requests.post(f'{ESP32_IP}/control', data={'dir': dir}, timeout=3)
+            return r.text
+        except Exception as e:
+            print(f"Error al enviar comando al ESP32: {e}")
+            return "Error", 500
+    return "No command", 400
+
+@app.route('/capturar', methods=['POST'])
+def capturar():
+    try:
+        response = requests.get('http://172.20.10.5/capture', timeout=5)
+
+
+        if response.status_code == 200:
+            if not os.path.exists("static/fotos"):
+                os.makedirs("static/fotos")
+            filename = f"captura_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
+            filepath = os.path.join("static/fotos", filename)
+            with open(filepath, "wb") as f:
+                f.write(response.content)
+            print("✅ Imagen guardada en:", filepath)
+            return f"Imagen guardada como {filename}", 200
+        else:
+            return f"Error HTTP del ESP32-CAM: {response.status_code}", 500
+    except Exception as e:
+        print("❌ Error capturando desde ESP32-CAM:", e)
+        return f"Error: {str(e)}", 500
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=True)
