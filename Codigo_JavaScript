@@ -1,0 +1,162 @@
+// Variables para almacenar datos históricos para graficas
+const datosTemperatura = [];
+const datosHumedad = [];
+const datosDistancia = [];
+const datosGas = [];
+const maxPuntos = 30;  // Máximo puntos en gráfica
+
+// Inicializamos Chart.js para cada sensor
+const ctxTemp = document.getElementById('graficaTemp').getContext('2d');
+const ctxHum = document.getElementById('graficaHum').getContext('2d');
+const ctxDist = document.getElementById('graficaDist').getContext('2d');
+const ctxGas = document.getElementById('graficaGas').getContext('2d');
+
+const grafTemp = new Chart(ctxTemp, {
+  type: 'line',
+  data: { labels: [], datasets: [{ label: 'Temperatura (°C)', data: [], borderColor: '#f94144', fill: false }] },
+  options: { animation: false, scales: { y: { beginAtZero: true } } }
+});
+const grafHum = new Chart(ctxHum, {
+  type: 'line',
+  data: { labels: [], datasets: [{ label: 'Humedad (%)', data: [], borderColor: '#577590', fill: false }] },
+  options: { animation: false, scales: { y: { beginAtZero: true, max: 100 } } }
+});
+const grafDist = new Chart(ctxDist, {
+  type: 'line',
+  data: { labels: [], datasets: [{ label: 'Distancia (cm)', data: [], borderColor: '#90be6d', fill: false }] },
+  options: { animation: false, scales: { y: { beginAtZero: true } } }
+});
+const grafGas = new Chart(ctxGas, {
+  type: 'line',
+  data: { labels: [], datasets: [{ label: 'Gas (ADC)', data: [], borderColor: '#f9c74f', fill: false }] },
+  options: { animation: false, scales: { y: { beginAtZero: true } } }
+});
+
+// Función para actualizar datos en pantalla y gráficas
+async function actualizarDatos() {
+  try {
+    const res = await fetch('/data');
+    const data = await res.json();
+
+    // Mostrar en HTML
+    document.getElementById('temp').textContent = data.temperatura.toFixed(1);
+    document.getElementById('hum').textContent = data.humedad.toFixed(1);
+    document.getElementById('dist').textContent = data.distancia.toFixed(1);
+    document.getElementById('gas').textContent = data.gas;
+
+    // Actualizar arrays y etiquetas (tiempo simple)
+    const now = new Date().toLocaleTimeString();
+
+    if (datosTemperatura.length >= maxPuntos) {
+      datosTemperatura.shift();
+      datosHumedad.shift();
+      datosDistancia.shift();
+      datosGas.shift();
+      grafTemp.data.labels.shift();
+    }
+
+    datosTemperatura.push(data.temperatura);
+    datosHumedad.push(data.humedad);
+    datosDistancia.push(data.distancia);
+    datosGas.push(data.gas);
+    grafTemp.data.labels.push(now);
+
+    // Actualizar datasets
+    grafTemp.data.datasets[0].data = datosTemperatura;
+    grafHum.data.datasets[0].data = datosHumedad;
+    grafDist.data.datasets[0].data = datosDistancia;
+    grafGas.data.datasets[0].data = datosGas;
+
+    // Actualizar etiquetas en las otras gráficas
+    grafHum.data.labels = grafTemp.data.labels;
+    grafDist.data.labels = grafTemp.data.labels;
+    grafGas.data.labels = grafTemp.data.labels;
+
+    // Refrescar gráficas
+    grafTemp.update();
+    grafHum.update();
+    grafDist.update();
+    grafGas.update();
+
+  } catch (error) {
+    console.error('Error al obtener datos del ESP32:', error);
+  }
+}
+
+// Función para enviar comando al ESP32 al pulsar joystick
+function mover(direccion) {
+  fetch('/control', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: `dir=${direccion}`
+  })
+  .then(response => response.text())
+  .then(data => {
+    console.log('Comando enviado:', direccion, 'Respuesta:', data);
+  })
+  .catch(err => {
+    console.error('Error enviando comando:', err);
+  });
+}
+
+// Función para exportar datos a CSV
+function exportar() {
+  if (datosTemperatura.length === 0) {
+    alert("No hay datos para exportar.");
+    return;
+  }
+
+  let csv = 'Hora,Temperatura (°C),Humedad (%),Distancia (cm),Gas (ADC)\n';
+
+  const labels = grafTemp.data.labels; // Horas/timestamps guardados
+
+  for (let i = 0; i < datosTemperatura.length; i++) {
+    const fila = [
+      labels[i] || '',
+      datosTemperatura[i].toFixed(1),
+      datosHumedad[i].toFixed(1),
+      datosDistancia[i].toFixed(1),
+      datosGas[i]
+    ];
+    csv += fila.join(',') + '\n';
+  }
+
+  // Crear Blob y descargar archivo
+  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement('a');
+  link.setAttribute('href', url);
+  link.setAttribute('download', 'datos_sensores.csv');
+  link.style.visibility = 'hidden';
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+// Ejecutar actualización cada 2 segundos
+setInterval(actualizarDatos, 2000);
+
+// Llamada inicial para mostrar datos al cargar
+actualizarDatos();
+
+function capturar() {
+  fetch('/capturar', {
+    method: 'POST'
+  })
+  .then(async res => {
+    const text = await res.text();
+
+    if (res.ok) {
+      alert("📸 Imagen capturada exitosamente.\n" + text);
+    } else {
+      alert("❌ Falló la captura:\n" + text);
+      console.error("Respuesta del servidor:", text);
+    }
+  })
+  .catch(err => {
+    console.error("❌ Error en la solicitud fetch:", err);
+    alert("❌ Error en la solicitud al servidor: " + err.message);
+  });
+}
