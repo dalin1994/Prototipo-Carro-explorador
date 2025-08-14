@@ -1,0 +1,73 @@
+</header>
+
+  <section id="video">
+    <h2>📷 Video en Tiempo Real</h2>
+    
+    <img src="http://172.20.10.5/stream" alt="ESP32-CAM Video" style="max-width:100%; height:auto;">
+    <button onclick="capturar()">📸 Capturar Imagen</button>
+    
+  </section>
+
+  <section id="datos">
+    <h2>📊 Sensores</h2>
+    <div class="valores">
+      <p>🌡️ Temperatura: <span id="temp">--</span> °C</p>
+      <p>💧 Humedad: <span id="hum">--</span> %</p>
+      <p>📏 Distancia: <span id="dist">--</span> cm</p>
+      <p>🔥 Gas: <span id="gas">--</span></p>
+    </div>
+
+    <div class="graficas">
+      <canvas id="graficaTemp"></canvas>
+      <canvas id="graficaHum"></canvas>
+      <canvas id="graficaDist"></canvas>
+      <canvas id="graficaGas"></canvas>
+    </div>
+
+    <button onclick="exportar()">📤 Exportar CSV</button>
+  </section>
+
+  <section id="joystick">
+    <h2>🎮 Control del Carrito</h2>
+    <div class="control-joystick">
+      <button class="btn up" onclick="mover('arriba')">⬆️</button>
+      <button class="btn left" onclick="mover('izquierda')">⬅️</button>
+      <button class="btn center" onclick="mover('detener')">⏹️</button>
+      <button class="btn right" onclick="mover('derecha')">➡️</button>
+      <button class="btn down" onclick="mover('abajo')">⬇️</button>
+    </div>
+  </section>
+
+  <footer>
+    <p>&copy; 2025 Universidad Laica Eloy Alfaro de Manabi | Proyecto Profesional ESP32 🚀</p>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
+
+<section>
+  <h2>🖼️ Capturas Guardadas</h2>
+  <div id="galeria"></div>
+</section>
+
+<script>
+  // Cargar capturas guardadas en /static/fotos/
+  async function cargarGaleria() {
+    try {
+      const res = await fetch('/static/fotos/');
+      const html = await res.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, "text/html");
+      const links = [...doc.querySelectorAll("a")]
+        .filter(a => a.href.endsWith(".jpg"))
+        .map(a => `<img src="${a.href}" style="max-width:200px;margin:5px;">`);
+      document.getElementById("galeria").innerHTML = links.join('');
+    } catch (e) {
+      console.error("No se pudo cargar la galería:", e);
+    }
+  }
+
+  cargarGaleria();
+</script>
