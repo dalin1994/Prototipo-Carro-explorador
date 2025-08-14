@@ -1,0 +1,112 @@
+#include <Arduino.h>
+#include <WiFi.h>
+#include <DHT.h>
+#include <NewPing.h>
+#include <ESPAsyncWebServer.h>
+// WiFi
+const char* ssid = "Vamos";
+const char* password = "12345678";
+// Pines sensores
+#define DHTPIN 4
+#define DHTTYPE DHT11
+#define TRIGGER_PIN 12
+#define ECHO_PIN 13
+#define MAX_DISTANCE 400
+#define GAS_SENSOR_PIN 34
+// Pines motores
+#define AIN1 25
+#define AIN2 26
+#define PWMA 27
+
+#define BIN1 32
+#define BIN2 33
+#define PWMB 14
+
+DHT dht(DHTPIN, DHTTYPE);
+NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);
+AsyncWebServer server(80);
+// Variables sensores
+float temperatura = 0.0;
+float humedad = 0.0;
+float distancia = 0.0;
+int gas = 0;
+// Control de motor con analogWrite (PWM)
+void detener() {
+  digitalWrite(AIN1, LOW); digitalWrite(AIN2, LOW);
+  digitalWrite(BIN1, LOW); digitalWrite(BIN2, LOW);
+  analogWrite(PWMA, 0);
+  analogWrite(PWMB, 0);
+}
+void adelante() {
+  digitalWrite(AIN1, HIGH); digitalWrite(AIN2, LOW);
+  digitalWrite(BIN1, HIGH); digitalWrite(BIN2, LOW);
+  analogWrite(PWMA, 150);
+  analogWrite(PWMB, 150);
+}
+void atras() {
+  digitalWrite(AIN1, LOW); digitalWrite(AIN2, HIGH);
+  digitalWrite(BIN1, LOW); digitalWrite(BIN2, HIGH);
+  analogWrite(PWMA, 150);
+  analogWrite(PWMB, 150);
+}
+void izquierda() {
+  digitalWrite(AIN1, LOW); digitalWrite(AIN2, HIGH);
+  digitalWrite(BIN1, HIGH); digitalWrite(BIN2, LOW);
+  analogWrite(PWMA, 150);
+  analogWrite(PWMB, 150);
+}
+void derecha() {
+  digitalWrite(AIN1, HIGH); digitalWrite(AIN2, LOW);
+  digitalWrite(BIN1, LOW); digitalWrite(BIN2, HIGH);
+  analogWrite(PWMA, 150);
+  analogWrite(PWMB, 150);
+}
+void setup() {
+  Serial.begin(115200);
+  dht.begin();
+  pinMode(GAS_SENSOR_PIN, INPUT);
+  pinMode(AIN1, OUTPUT); pinMode(AIN2, OUTPUT); pinMode(PWMA, OUTPUT);
+  pinMode(BIN1, OUTPUT); pinMode(BIN2, OUTPUT); pinMode(PWMB, OUTPUT);
+  detener(); // Por seguridad
+  // WiFi
+  WiFi.begin(ssid, password);
+  Serial.print("Conectando");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500); Serial.print(".");
+  }
+  Serial.println("\nWiFi conectado. IP: " + WiFi.localIP().toString());
+  // Endpoint /data para sensores
+  server.on("/data", HTTP_GET, [](AsyncWebServerRequest *request){
+    temperatura = dht.readTemperature();
+    humedad = dht.readHumidity();
+    distancia = sonar.ping_cm();
+    if (distancia == 0) distancia = MAX_DISTANCE;
+    gas = analogRead(GAS_SENSOR_PIN);
+    String json = "{";
+    json += "\"temperatura\": " + String(temperatura) + ",";
+    json += "\"humedad\": " + String(humedad) + ",";
+    json += "\"distancia\": " + String(distancia) + ",";
+    json += "\"gas\": " + String(gas);
+    json += "}";
+    request->send(200, "application/json", json);
+  });
+  // Endpoint /control
+  server.on("/control", HTTP_POST, [](AsyncWebServerRequest *request){
+    if (request->hasParam("dir", true)) {
+      String dir = request->getParam("dir", true)->value();
+      Serial.println("Dirección: " + dir);
+
+      if (dir == "arriba") adelante();
+      else if (dir == "abajo") atras();
+      else if (dir == "izquierda") izquierda();
+      else if (dir == "derecha") derecha();
+      else detener();
+    }
+    request->send(200, "text/plain", "OK");
+  });
+server.begin();
+  Serial.println("Servidor iniciado");
+}
+void loop() {
+  // Nada aquí, usamos AsyncWebServer
+}
