@@ -1,0 +1,130 @@
+section {
+  padding: 1em 2em;
+}
+.valores p {
+  font-size: 1.2em;
+}
+.control button {
+  font-size: 1.5em;
+  margin: 5px;
+  padding: 10px;
+  background: #94d2bd;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.control button:hover {
+  background: #0a9396;
+  color: white;
+}
+
+.control-joystick {
+  display: grid;
+  grid-template-areas:
+    ". up ."
+    "left center right"
+    ". down .";
+  grid-gap: 10px;
+  justify-content: center;
+  align-items: center;
+  width: 180px;
+  margin: auto;
+}
+
+.control-joystick .btn {
+  width: 50px;
+  height: 50px;
+  font-size: 24px;
+  border: none;
+  border-radius: 8px;
+  background-color: #007acc;
+  color: white;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.3s;
+}
+
+.control-joystick .btn:hover {
+  background-color: #005b99;
+}
+
+.control-joystick .up {
+  grid-area: up;
+}
+
+.control-joystick .down {
+  grid-area: down;
+}
+
+.control-joystick .left {
+  grid-area: left;
+}
+
+.control-joystick .right {
+  grid-area: right;
+}
+
+.control-joystick .center {
+  grid-area: center;
+}
+
+#joystick h2 {
+  text-align: center;
+  color: #007acc;
+  background-color: #d7ecff;
+  padding: 10px 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0, 122, 204, 0.4);
+  font-weight: 600;
+  font-size: 1.8em;
+  max-width: 400px;
+  margin: 0 auto 25px auto;
+  transition: background-color 0.3s ease;
+  cursor: default;
+}
+
+#joystick h2:hover {
+  background-color: #a6d1ff;
+  box-shadow: 0 4px 12px rgba(0, 122, 204, 0.6);
+}
+
+header h1 {
+  text-align: center;
+  color: #004d80;
+  background-color: #80cfff;
+  padding: 20px 0;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 122, 204, 0.5);
+  font-weight: 700;
+  font-size: 2.5em;
+  margin: 0 0 30px 0;
+  user-select: none;
+}
+
+footer {
+  text-align: center;
+  color: #005b99;
+  background-color: #d7ecff;
+  padding: 15px 10px;
+  border-top: 2px solid #80cfff;
+  font-size: 0.9em;
+  font-weight: 500;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+  user-select: none;
+}
+
+.graficas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+  gap: 30px;
+  justify-items: center;
+  margin-top: 20px;
+}
+
+.graficas canvas {
+  width: 380px !important;
+  height: 250px !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  border-radius: 8px;
+  background-color: #fff;
+}
